@@ -8,7 +8,7 @@ on:
     branches: [ main, master ]
 
 env:
-  REGISTRY: docker.io
+  REGISTRY: ${{ secrets.REGISTRY }}
   IMAGE_NAME: ${{ github.repository_owner }}/gmail-mcp
 
 jobs:
