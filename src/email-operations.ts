@@ -1,6 +1,16 @@
 import { ImapService } from './imap-service.js';
 import { SmtpService } from './smtp-service.js';
-import { EmailMessage, SearchResult, SendResult, ListMessagesParams, FindMessageParams, SendMessageParams } from './types.js';
+import {
+  EmailMessage,
+  SearchResult,
+  SendResult,
+  ListMessagesParams,
+  ListUnreadParams,
+  FindMessageParams,
+  SendMessageParams,
+  MarkAsReadParams,
+  MarkAsReadResult,
+} from './types.js';
 
 export class EmailOperations {
   constructor(
@@ -16,6 +26,14 @@ export class EmailOperations {
       return await this.imapService.listMessages(params.count);
     } catch (error) {
       throw new Error(`Failed to list messages: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async listUnreadMessages(params: ListUnreadParams): Promise<EmailMessage[]> {
+    try {
+      return await this.imapService.listUnreadMessages(params.count);
+    } catch (error) {
+      throw new Error(`Failed to list unread messages: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -44,4 +62,13 @@ export class EmailOperations {
       };
     }
   }
+
+  async markMessagesAsRead(params: MarkAsReadParams): Promise<MarkAsReadResult> {
+    try {
+      return await this.imapService.markMessagesAsRead(params.messageIds);
+    } catch (error) {
+      throw new Error(`Failed to mark messages as read: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
 }

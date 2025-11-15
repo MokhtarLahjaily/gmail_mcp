@@ -5,13 +5,12 @@ import dotenv from 'dotenv';
 import { ImapService } from './imap-service.js';
 import { SmtpService } from './smtp-service.js';
 import { EmailOperations } from './email-operations.js';
-import { 
-  ListMessagesSchema, 
-  FindMessageSchema, 
+import {
+  ListMessagesSchema,
+  ListUnreadSchema,
+  FindMessageSchema,
   SendMessageSchema,
-  ListMessagesParams,
-  FindMessageParams,
-  SendMessageParams
+  MarkAsReadSchema,
 } from './types.js';
 
 // Load environment variables
@@ -68,6 +67,45 @@ class EmailMCPServer {
         try {
           const params = ListMessagesSchema.parse(args ?? {});
           const messages = await this.emailOperations.listMessages(params);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    success: true,
+                    count: messages.length,
+                    messages: messages.map((msg) => ({
+                      id: msg.id,
+                      subject: msg.subject,
+                      from: msg.from,
+                      date: msg.date,
+                      snippet: msg.snippet,
+                    })),
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error occurred';
+          throw new McpError(ErrorCode.InternalError, message);
+        }
+      }
+    );
+
+    this.server.registerTool(
+      'listUnread',
+      {
+        description: 'List unread messages from Gmail inbox',
+        inputSchema: ListUnreadSchema,
+      },
+      async (args) => {
+        try {
+          const params = ListUnreadSchema.parse(args ?? {});
+          const messages = await this.emailOperations.listUnreadMessages(params);
           return {
             content: [
               {
@@ -170,6 +208,40 @@ class EmailMCPServer {
         }
       }
     );
+
+    this.server.registerTool(
+      'markAsRead',
+      {
+        description: 'Mark specified messages as read',
+        inputSchema: MarkAsReadSchema,
+      },
+      async (args) => {
+        try {
+          const params = MarkAsReadSchema.parse(args ?? {});
+          const result = await this.emailOperations.markMessagesAsRead(params);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(
+                  {
+                    success: result.success,
+                    updatedCount: result.updatedCount,
+                    message: result.message,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error occurred';
+          throw new McpError(ErrorCode.InternalError, message);
+        }
+      }
+    );
+
   }
 
   async run() {
