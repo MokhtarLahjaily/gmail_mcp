@@ -10,13 +10,15 @@ import {
   SendMessageParams,
   MarkAsReadParams,
   MarkAsReadResult,
+  DeleteMessageParams,
+  DeleteMessageResult,
 } from './types.js';
 
 export class EmailOperations {
   constructor(
     private imapService: ImapService,
     private smtpService: SmtpService
-  ) {}
+  ) { }
 
   /**
    * List recent messages from email inbox
@@ -68,6 +70,14 @@ export class EmailOperations {
       return await this.imapService.markMessagesAsRead(params.messageIds);
     } catch (error) {
       throw new Error(`Failed to mark messages as read: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async deleteMessages(params: DeleteMessageParams): Promise<DeleteMessageResult> {
+    try {
+      return await this.imapService.deleteMessages(params.messageIds);
+    } catch (error) {
+      throw new Error(`Failed to delete messages: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

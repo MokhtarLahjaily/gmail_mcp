@@ -60,3 +60,4 @@ test-*.js
 # Docker volumes and data
 docker-data/
 volumes/
+reports/

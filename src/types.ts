@@ -17,8 +17,15 @@ export const SendMessageSchema = z.object({
   to: z.string().email('Invalid email address'),
   subject: z.string().min(1, 'Subject cannot be empty'),
   body: z.string().min(1, 'Message body cannot be empty'),
-  cc: z.string().email().optional(),
-  bcc: z.string().email().optional(),
+  html: z.string().optional(), // Optional HTML version of the email
+  cc: z.union([
+    z.string().email(),
+    z.array(z.string().email())
+  ]).optional(),
+  bcc: z.union([
+    z.string().email(),
+    z.array(z.string().email())
+  ]).optional(),
 });
 
 export const MarkAsReadSchema = z.object({
@@ -59,5 +66,17 @@ export interface SendResult {
 export interface MarkAsReadResult {
   success: boolean;
   updatedCount: number;
+  message: string;
+}
+
+export const DeleteMessageSchema = z.object({
+  messageIds: z.array(z.string().min(1)).min(1, 'Provide at least one message ID'),
+});
+
+export type DeleteMessageParams = z.infer<typeof DeleteMessageSchema>;
+
+export interface DeleteMessageResult {
+  success: boolean;
+  deletedCount: number;
   message: string;
 }

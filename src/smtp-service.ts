@@ -29,6 +29,17 @@ export class SmtpService {
   }
 
   /**
+   * Helper to normalize email addresses (convert array to comma-separated string)
+   */
+  private normalizeEmails(emails: string | string[] | undefined): string | undefined {
+    if (!emails) return undefined;
+    if (Array.isArray(emails)) {
+      return emails.join(', ');
+    }
+    return emails;
+  }
+
+  /**
    * Send an email message
    */
   async sendMessage(params: SendMessageParams): Promise<SendResult> {
@@ -38,8 +49,9 @@ export class SmtpService {
         to: params.to,
         subject: params.subject,
         text: params.body,
-        cc: params.cc,
-        bcc: params.bcc,
+        html: params.html, // HTML version (optional)
+        cc: this.normalizeEmails(params.cc),
+        bcc: this.normalizeEmails(params.bcc),
       };
 
       const info = await this.transporter.sendMail(mailOptions);
@@ -55,19 +67,6 @@ export class SmtpService {
         success: false,
         message: `Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
-    }
-  }
-
-  /**
-   * Verify SMTP connection
-   */
-  async verifyConnection(): Promise<boolean> {
-    try {
-      await this.transporter.verify();
-      return true;
-    } catch (error) {
-      console.error('SMTP connection verification failed:', error);
-      return false;
     }
   }
 }

@@ -11,6 +11,8 @@ import {
   FindMessageSchema,
   SendMessageSchema,
   MarkAsReadSchema,
+  DeleteMessageSchema,
+  EmailMessage,
 } from './types.js';
 
 // Load environment variables
@@ -56,7 +58,43 @@ class EmailMCPServer {
     this.setupToolHandlers();
   }
 
+  /**
+   * Helper to create a JSON response for MCP tools
+   */
+  private createJsonResponse(data: any) {
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(data, null, 2),
+        },
+      ],
+    };
+  }
+
+  /**
+   * Helper to format email messages for response
+   */
+  private formatMessages(messages: EmailMessage[]) {
+    return messages.map((msg) => ({
+      id: msg.id,
+      subject: msg.subject,
+      from: msg.from,
+      date: msg.date,
+      snippet: msg.snippet,
+    }));
+  }
+
+  /**
+   * Helper to handle errors consistently
+   */
+  private handleError(error: unknown): never {
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new McpError(ErrorCode.InternalError, message);
+  }
+
   private setupToolHandlers() {
+    // List Messages
     this.server.registerTool(
       'listMessages',
       {
@@ -67,35 +105,18 @@ class EmailMCPServer {
         try {
           const params = ListMessagesSchema.parse(args ?? {});
           const messages = await this.emailOperations.listMessages(params);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    success: true,
-                    count: messages.length,
-                    messages: messages.map((msg) => ({
-                      id: msg.id,
-                      subject: msg.subject,
-                      from: msg.from,
-                      date: msg.date,
-                      snippet: msg.snippet,
-                    })),
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
+          return this.createJsonResponse({
+            success: true,
+            count: messages.length,
+            messages: this.formatMessages(messages),
+          });
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error occurred';
-          throw new McpError(ErrorCode.InternalError, message);
+          this.handleError(error);
         }
       }
     );
 
+    // List Unread Messages
     this.server.registerTool(
       'listUnread',
       {
@@ -106,35 +127,18 @@ class EmailMCPServer {
         try {
           const params = ListUnreadSchema.parse(args ?? {});
           const messages = await this.emailOperations.listUnreadMessages(params);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    success: true,
-                    count: messages.length,
-                    messages: messages.map((msg) => ({
-                      id: msg.id,
-                      subject: msg.subject,
-                      from: msg.from,
-                      date: msg.date,
-                      snippet: msg.snippet,
-                    })),
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
+          return this.createJsonResponse({
+            success: true,
+            count: messages.length,
+            messages: this.formatMessages(messages),
+          });
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error occurred';
-          throw new McpError(ErrorCode.InternalError, message);
+          this.handleError(error);
         }
       }
     );
 
+    // Find Message
     this.server.registerTool(
       'findMessage',
       {
@@ -145,37 +149,20 @@ class EmailMCPServer {
         try {
           const params = FindMessageSchema.parse(args ?? {});
           const result = await this.emailOperations.findMessages(params);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    success: true,
-                    query: result.query,
-                    totalCount: result.totalCount,
-                    foundMessages: result.messages.length,
-                    messages: result.messages.map((msg) => ({
-                      id: msg.id,
-                      subject: msg.subject,
-                      from: msg.from,
-                      date: msg.date,
-                      snippet: msg.snippet,
-                    })),
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
+          return this.createJsonResponse({
+            success: true,
+            query: result.query,
+            totalCount: result.totalCount,
+            foundMessages: result.messages.length,
+            messages: this.formatMessages(result.messages),
+          });
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error occurred';
-          throw new McpError(ErrorCode.InternalError, message);
+          this.handleError(error);
         }
       }
     );
 
+    // Send Message
     this.server.registerTool(
       'sendMessage',
       {
@@ -186,29 +173,18 @@ class EmailMCPServer {
         try {
           const params = SendMessageSchema.parse(args ?? {});
           const result = await this.emailOperations.sendMessage(params);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    success: result.success,
-                    messageId: result.messageId,
-                    message: result.message,
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
+          return this.createJsonResponse({
+            success: result.success,
+            messageId: result.messageId,
+            message: result.message,
+          });
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error occurred';
-          throw new McpError(ErrorCode.InternalError, message);
+          this.handleError(error);
         }
       }
     );
 
+    // Mark As Read
     this.server.registerTool(
       'markAsRead',
       {
@@ -219,29 +195,38 @@ class EmailMCPServer {
         try {
           const params = MarkAsReadSchema.parse(args ?? {});
           const result = await this.emailOperations.markMessagesAsRead(params);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    success: result.success,
-                    updatedCount: result.updatedCount,
-                    message: result.message,
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
+          return this.createJsonResponse({
+            success: result.success,
+            updatedCount: result.updatedCount,
+            message: result.message,
+          });
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error occurred';
-          throw new McpError(ErrorCode.InternalError, message);
+          this.handleError(error);
         }
       }
     );
 
+    // Delete Message
+    this.server.registerTool(
+      'deleteMessage',
+      {
+        description: 'Delete specified messages (move to Trash)',
+        inputSchema: DeleteMessageSchema,
+      },
+      async (args) => {
+        try {
+          const params = DeleteMessageSchema.parse(args ?? {});
+          const result = await this.emailOperations.deleteMessages(params);
+          return this.createJsonResponse({
+            success: result.success,
+            deletedCount: result.deletedCount,
+            message: result.message,
+          });
+        } catch (error) {
+          this.handleError(error);
+        }
+      }
+    );
   }
 
   async run() {
