@@ -13,12 +13,13 @@ import {
   MarkAsReadSchema,
   DeleteMessageSchema,
   EmailMessage,
-  CreateFolderSchema,
   MoveMessageSchema,
   LabelMessageSchema,
   CreateLabelSchema,
   ListLabelsSchema,
-  ListFoldersSchema,
+  DeleteLabelSchema,
+  RenameLabelSchema,
+  MoveLabelSchema,
 } from './types.js';
 
 // Load environment variables
@@ -275,26 +276,6 @@ class EmailMCPServer {
     );
 
     this.server.registerTool(
-      'createFolder',
-      {
-        description: 'Create a new folder or label',
-        inputSchema: CreateFolderSchema,
-      },
-      async (args) => {
-        try {
-          const params = CreateFolderSchema.parse(args ?? {});
-          const result = await this.emailOperations.createFolder(params);
-          return this.createJsonResponse({
-            success: result.success,
-            message: result.message,
-          })
-        } catch (error) {
-          this.handleError(error);
-        }
-      }
-    );
-
-    this.server.registerTool(
       'createLabel',
       {
         description: 'Create a new label',
@@ -335,19 +316,59 @@ class EmailMCPServer {
     );
 
     this.server.registerTool(
-      'listFolders',
+      'deleteLabel',
       {
-        description: 'List all folders',
-        inputSchema: ListFoldersSchema,
+        description: 'Delete an existing label',
+        inputSchema: DeleteLabelSchema,
       },
       async (args) => {
         try {
-          const params = ListFoldersSchema.parse(args ?? {});
-          const result = await this.emailOperations.listFolders(params);
+          const params = DeleteLabelSchema.parse(args ?? {});
+          const result = await this.emailOperations.deleteLabel(params);
           return this.createJsonResponse({
             success: result.success,
-            folders: result.folders,
-          })
+            message: result.message,
+          });
+        } catch (error) {
+          this.handleError(error);
+        }
+      }
+    );
+
+    this.server.registerTool(
+      'renameLabel',
+      {
+        description: 'Rename a label (change its name directly)',
+        inputSchema: RenameLabelSchema,
+      },
+      async (args) => {
+        try {
+          const params = RenameLabelSchema.parse(args ?? {});
+          const result = await this.emailOperations.renameLabel(params);
+          return this.createJsonResponse({
+            success: result.success,
+            message: result.message,
+          });
+        } catch (error) {
+          this.handleError(error);
+        }
+      }
+    );
+
+    this.server.registerTool(
+      'moveLabel',
+      {
+        description: 'Move a label under a new parent label',
+        inputSchema: MoveLabelSchema,
+      },
+      async (args) => {
+        try {
+          const params = MoveLabelSchema.parse(args ?? {});
+          const result = await this.emailOperations.moveLabel(params);
+          return this.createJsonResponse({
+            success: result.success,
+            message: result.message,
+          });
         } catch (error) {
           this.handleError(error);
         }

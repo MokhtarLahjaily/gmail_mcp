@@ -1,5 +1,5 @@
 import Imap from 'imap';
-import { EmailMessage, MarkAsReadResult, SearchResult, DeleteMessageResult, CreateFolderResult, CreateLabelResult, LabelMessageResult, MoveMessageResult, ListFoldersResult, ListLabelsResult } from './types.js';
+import { EmailMessage, MarkAsReadResult, SearchResult, DeleteMessageResult, ListLabelsResult, CreateLabelResult, LabelMessageResult, MoveMessageResult, DeleteLabelResult, RenameLabelResult, MoveLabelResult } from './types.js';
 
 export interface ImapConfig {
   host: string;
@@ -353,13 +353,17 @@ export class ImapService {
     });
   }
 
-  async createFolder(folderName: string): Promise<CreateFolderResult> {
+  async listLabels(): Promise<ListLabelsResult> {
     return this.connectAndRun((imap, resolve, reject) => {
-      imap.addBox(folderName, (err: any) => {
+      imap.getBoxes((err: any, boxes: any) => {
         if (err) return reject(err);
+
+        // Same logic as folders for Gmail
+        const labels = this.parseMailboxes(boxes);
+
         resolve({
           success: true,
-          message: `Folder "${folderName}" created successfully`,
+          labels,
         });
       });
     });
@@ -406,7 +410,6 @@ export class ImapService {
     });
   }
 
-  // FIXED: Now accepts sourceFolder to find the correct message UID
   async moveMessage(messageId: string, destination: string, sourceFolder: string = 'INBOX'): Promise<MoveMessageResult> {
     return this.connectAndRun((imap, resolve, reject) => {
       imap.openBox(sourceFolder, false, (err: any) => {
@@ -423,33 +426,42 @@ export class ImapService {
     });
   }
 
-  async listFolders(): Promise<ListFoldersResult> {
+  async deleteLabel(labelName: string): Promise<DeleteLabelResult> {
     return this.connectAndRun((imap, resolve, reject) => {
-      imap.getBoxes((err: any, boxes: any) => {
+      imap.delBox(labelName, (err: any) => {
         if (err) return reject(err);
-
-        // Use the helper to flatten the nested mailbox structure
-        const folders = this.parseMailboxes(boxes);
-
         resolve({
           success: true,
-          folders,
+          message: `Label "${labelName}" deleted successfully`,
         });
       });
     });
   }
 
-  async listLabels(): Promise<ListLabelsResult> {
+  async renameLabel(oldLabelName: string, newLabelName: string): Promise<RenameLabelResult> {
     return this.connectAndRun((imap, resolve, reject) => {
-      imap.getBoxes((err: any, boxes: any) => {
+      imap.renameBox(oldLabelName, newLabelName, (err: any) => {
         if (err) return reject(err);
-
-        // Same logic as folders for Gmail
-        const labels = this.parseMailboxes(boxes);
-
         resolve({
           success: true,
-          labels,
+          message: `Label renamed from "${oldLabelName}" to "${newLabelName}" successfully`,
+        });
+      });
+    });
+  }
+
+  async moveLabel(labelName: string, newParentLabel: string): Promise<MoveLabelResult> {
+    return this.connectAndRun((imap, resolve, reject) => {
+      // Logic: Extract the leaf name (e.g., "Project" from "Work/Project")
+      // and append it to the new parent (e.g., "Archive" -> "Archive/Project")
+      const leafName = labelName.split('/').pop() || labelName;
+      const destination = `${newParentLabel}/${leafName}`;
+
+      imap.renameBox(labelName, destination, (err: any) => {
+        if (err) return reject(err);
+        resolve({
+          success: true,
+          message: `Label "${labelName}" moved to "${destination}" successfully`,
         });
       });
     });

@@ -12,12 +12,13 @@ A Model Context Protocol (MCP) server for Gmail operations using IMAP/SMTP with 
 - **markAsRead**: Mark messages (by ID) as read
 - **deleteMessage**: Delete messages (move to Trash)
 
-### Folder & Label Management
-- **listFolders**: List all available folders in your mailbox
+### Label Management
 - **listLabels**: List all available labels in your mailbox
-- **createFolder**: Create a new folder
-- **createLabel**: Create a new label
-- **moveMessage**: Move a message to a different folder
+- **createLabel**: Create a new label (supports sub-labels like `Parent/Child`)
+- **renameLabel**: Rename an existing label
+- **moveLabel**: Move a label to nest it under another parent label
+- **deleteLabel**: Delete a label
+- **moveMessage**: Move a message to a different label/folder
 - **labelMessage**: Apply labels to a message
 
 ## Simple Setup (No OAuth Required!)
@@ -349,17 +350,7 @@ Example:
 }
 ```
 
-### listFolders
 
-Lists all available folders in your Gmail mailbox (INBOX, Sent Mail, Trash, Drafts, etc.).
-
-- Parameters: None required
-
-Example:
-
-```json
-{}
-```
 
 ### listLabels
 
@@ -373,25 +364,13 @@ Example:
 {}
 ```
 
-### createFolder
 
-Creates a new folder in your Gmail mailbox.
-
-- Parameters: `folderName` (required) - Name of the folder to create
-
-Example:
-
-```json
-{
-  "folderName": "Projects/2024"
-}
-```
 
 ### createLabel
 
-Creates a new label in your Gmail mailbox.
+Creates a new label in your Gmail mailbox. Supports hierarchical labels using forward slashes (e.g., `Parent/Child`).
 
-- Parameters: `labelName` (required) - Name of the label to create
+- Parameters: `labelName` (required) - Name of the label to create. Use `/` to create nested labels.
 
 Example:
 
@@ -401,21 +380,71 @@ Example:
 }
 ```
 
+### deleteLabel
+
+Deletes an existing label from your Gmail mailbox.
+
+- Parameters: `labelName` (required) - Name of the label to delete
+
+Example:
+
+```json
+{
+  "labelName": "OldLabel"
+}
+```
+
+### renameLabel
+
+Renames an existing label in your Gmail mailbox.
+
+- Parameters: 
+  - `oldLabelName` (required) - Current name of the label
+  - `newLabelName` (required) - New name for the label
+
+Example:
+
+```json
+{
+  "oldLabelName": "testLabel",
+  "newLabelName": "productionLabel"
+}
+```
+
+### moveLabel
+
+Moves a label to nest it under a parent label, creating a hierarchical structure.
+
+- Parameters: 
+  - `labelName` (required) - Name of the label to move
+  - `newParentLabel` (required) - Name of the parent label to nest under
+
+Example:
+
+```json
+{
+  "labelName": "ProjectA",
+  "newParentLabel": "Archive"
+}
+```
+
+This would move `ProjectA` to become `Archive/ProjectA`.
+
 ### moveMessage
 
-Moves a message from one folder to another.
+Moves a message from one folder/label to another.
 
 - Parameters: 
   - `messageId` (required) - UID of the message to move
-  - `folder` (required) - Destination folder name
-  - `sourceFolder` (optional, default: "INBOX") - Source folder name
+  - `folder` (required) - Destination folder/label name
+  - `sourceFolder` (optional, default: "INBOX") - Source folder/label name
 
 Example:
 
 ```json
 {
   "messageId": "12345",
-  "folder": "Projects/2024",
+  "folder": "Archive/2024",
   "sourceFolder": "INBOX"
 }
 ```
