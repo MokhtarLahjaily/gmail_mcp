@@ -1,5 +1,5 @@
 import Imap from 'imap';
-import { EmailMessage, MarkAsReadResult, SearchResult, DeleteMessageResult } from './types.js';
+import { EmailMessage, MarkAsReadResult, SearchResult, DeleteMessageResult, CreateFolderResult, CreateLabelResult, LabelMessageResult, MoveMessageResult, ListFoldersResult, ListLabelsResult } from './types.js';
 
 export interface ImapConfig {
   host: string;
@@ -50,6 +50,30 @@ export class ImapService {
       snippet: `${headers.subject || '(No Subject)'} - ${headers.from || 'Unknown sender'}`,
       labels: ['INBOX'],
     };
+  }
+
+  /**
+   * Helper to recursively parse mailbox objects into a flat list of paths
+   */
+  private parseMailboxes(boxes: any, parent: string = ''): string[] {
+    let results: string[] = [];
+
+    // Iterate over the keys (folder names) of the object
+    for (const key of Object.keys(boxes)) {
+      const box = boxes[key];
+      // Use the delimiter provided by the server (usually '/')
+      const delimiter = box.delimiter || '/';
+      const fullPath = parent ? `${parent}${delimiter}${key}` : key;
+
+      results.push(fullPath);
+
+      // Recursively parse children if they exist
+      if (box.children) {
+        results = results.concat(this.parseMailboxes(box.children, fullPath));
+      }
+    }
+
+    return results;
   }
 
   /**
@@ -325,6 +349,108 @@ export class ImapService {
             });
           });
         };
+      });
+    });
+  }
+
+  async createFolder(folderName: string): Promise<CreateFolderResult> {
+    return this.connectAndRun((imap, resolve, reject) => {
+      imap.addBox(folderName, (err: any) => {
+        if (err) return reject(err);
+        resolve({
+          success: true,
+          message: `Folder "${folderName}" created successfully`,
+        });
+      });
+    });
+  }
+
+  async createLabel(labelName: string): Promise<CreateLabelResult> {
+    // In Gmail IMAP, labels are treated essentially as folders
+    return this.connectAndRun((imap, resolve, reject) => {
+      imap.addBox(labelName, (err: any) => {
+        if (err) return reject(err);
+        resolve({
+          success: true,
+          message: `Label "${labelName}" created successfully`,
+        });
+      });
+    });
+  }
+
+  async labelMessage(messageId: string, labels: string[]): Promise<LabelMessageResult> {
+    // In Gmail IMAP, applying a label is equivalent to COPYING the message to the folder/label
+    return this.connectAndRun((imap, resolve, reject) => {
+      imap.openBox('INBOX', false, (err: any) => {
+        if (err) return reject(err);
+
+        // We need to perform a copy operation for each label
+        const copyPromises = labels.map(label => {
+          return new Promise<void>((res, rej) => {
+            imap.copy(messageId, label, (err: any) => {
+              if (err) rej(err);
+              else res();
+            });
+          });
+        });
+
+        Promise.all(copyPromises)
+          .then(() => {
+            resolve({
+              success: true,
+              message: `Message "${messageId}" labeled with: ${labels.join(', ')}`,
+            });
+          })
+          .catch(reject);
+      });
+    });
+  }
+
+  // FIXED: Now accepts sourceFolder to find the correct message UID
+  async moveMessage(messageId: string, destination: string, sourceFolder: string = 'INBOX'): Promise<MoveMessageResult> {
+    return this.connectAndRun((imap, resolve, reject) => {
+      imap.openBox(sourceFolder, false, (err: any) => {
+        if (err) return reject(err);
+
+        imap.move(messageId, destination, (err: any) => {
+          if (err) return reject(err);
+          resolve({
+            success: true,
+            message: `Message "${messageId}" moved from "${sourceFolder}" to "${destination}" successfully`,
+          });
+        });
+      });
+    });
+  }
+
+  async listFolders(): Promise<ListFoldersResult> {
+    return this.connectAndRun((imap, resolve, reject) => {
+      imap.getBoxes((err: any, boxes: any) => {
+        if (err) return reject(err);
+
+        // Use the helper to flatten the nested mailbox structure
+        const folders = this.parseMailboxes(boxes);
+
+        resolve({
+          success: true,
+          folders,
+        });
+      });
+    });
+  }
+
+  async listLabels(): Promise<ListLabelsResult> {
+    return this.connectAndRun((imap, resolve, reject) => {
+      imap.getBoxes((err: any, boxes: any) => {
+        if (err) return reject(err);
+
+        // Same logic as folders for Gmail
+        const labels = this.parseMailboxes(boxes);
+
+        resolve({
+          success: true,
+          labels,
+        });
       });
     });
   }

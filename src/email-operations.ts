@@ -12,6 +12,18 @@ import {
   MarkAsReadResult,
   DeleteMessageParams,
   DeleteMessageResult,
+  MoveMessageParams,
+  MoveMessageResult,
+  LabelMessageParams,
+  LabelMessageResult,
+  CreateFolderParams,
+  CreateFolderResult,
+  CreateLabelParams,
+  CreateLabelResult,
+  ListLabelsParams,
+  ListLabelsResult,
+  ListFoldersParams,
+  ListFoldersResult,
 } from './types.js';
 
 export class EmailOperations {
@@ -81,4 +93,52 @@ export class EmailOperations {
     }
   }
 
+  async createFolder(params: CreateFolderParams): Promise<CreateFolderResult> {
+    try {
+      return await this.imapService.createFolder(params.folderName);
+    } catch (error) {
+      throw new Error(`Failed to create folder: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async createLabel(params: CreateLabelParams): Promise<CreateLabelResult> {
+    try {
+      return await this.imapService.createLabel(params.labelName);
+    } catch (error) {
+      throw new Error(`Failed to create label: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async labelMessage(params: LabelMessageParams): Promise<LabelMessageResult> {
+    try {
+      return await this.imapService.labelMessage(params.messageId, params.labels);
+    } catch (error) {
+      throw new Error(`Failed to label message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async moveMessage(params: MoveMessageParams): Promise<MoveMessageResult> {
+    try {
+      // FIXED: Pass sourceFolder to imapService
+      return await this.imapService.moveMessage(params.messageId, params.folder, params.sourceFolder);
+    } catch (error) {
+      throw new Error(`Failed to move message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async listFolders(params: ListFoldersParams): Promise<ListFoldersResult> {
+    try {
+      return await this.imapService.listFolders();
+    } catch (error) {
+      throw new Error(`Failed to list folders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async listLabels(params: ListLabelsParams): Promise<ListLabelsResult> {
+    try {
+      return await this.imapService.listLabels();
+    } catch (error) {
+      throw new Error(`Failed to list labels: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }

@@ -13,6 +13,12 @@ import {
   MarkAsReadSchema,
   DeleteMessageSchema,
   EmailMessage,
+  CreateFolderSchema,
+  MoveMessageSchema,
+  LabelMessageSchema,
+  CreateLabelSchema,
+  ListLabelsSchema,
+  ListFoldersSchema,
 } from './types.js';
 
 // Load environment variables
@@ -222,6 +228,126 @@ class EmailMCPServer {
             deletedCount: result.deletedCount,
             message: result.message,
           });
+        } catch (error) {
+          this.handleError(error);
+        }
+      }
+    );
+
+    this.server.registerTool(
+      'moveMessage',
+      {
+        description: 'Move a message to a specific folder',
+        inputSchema: MoveMessageSchema,
+      },
+      async (args) => {
+        try {
+          const params = MoveMessageSchema.parse(args ?? {});
+          const result = await this.emailOperations.moveMessage(params);
+          return this.createJsonResponse({
+            success: result.success,
+            message: result.message,
+          });
+        } catch (error) {
+          this.handleError(error);
+        }
+      }
+    );
+
+    this.server.registerTool(
+      'labelMessage',
+      {
+        description: 'Add labels to a message (copy to label folders)',
+        inputSchema: LabelMessageSchema,
+      },
+      async (args) => {
+        try {
+          const params = LabelMessageSchema.parse(args ?? {});
+          const result = await this.emailOperations.labelMessage(params);
+          return this.createJsonResponse({
+            success: result.success,
+            message: result.message,
+          })
+        } catch (error) {
+          this.handleError(error);
+        }
+      }
+    );
+
+    this.server.registerTool(
+      'createFolder',
+      {
+        description: 'Create a new folder or label',
+        inputSchema: CreateFolderSchema,
+      },
+      async (args) => {
+        try {
+          const params = CreateFolderSchema.parse(args ?? {});
+          const result = await this.emailOperations.createFolder(params);
+          return this.createJsonResponse({
+            success: result.success,
+            message: result.message,
+          })
+        } catch (error) {
+          this.handleError(error);
+        }
+      }
+    );
+
+    this.server.registerTool(
+      'createLabel',
+      {
+        description: 'Create a new label',
+        inputSchema: CreateLabelSchema,
+      },
+      async (args) => {
+        try {
+          const params = CreateLabelSchema.parse(args ?? {});
+          const result = await this.emailOperations.createLabel(params);
+          return this.createJsonResponse({
+            success: result.success,
+            message: result.message,
+          })
+        } catch (error) {
+          this.handleError(error);
+        }
+      }
+    );
+
+    this.server.registerTool(
+      'listLabels',
+      {
+        description: 'List all labels',
+        inputSchema: ListLabelsSchema,
+      },
+      async (args) => {
+        try {
+          const params = ListLabelsSchema.parse(args ?? {});
+          const result = await this.emailOperations.listLabels(params);
+          return this.createJsonResponse({
+            success: result.success,
+            labels: result.labels,
+          })
+        } catch (error) {
+          this.handleError(error);
+        }
+      }
+    );
+
+    this.server.registerTool(
+      'listFolders',
+      {
+        description: 'List all folders',
+        inputSchema: ListFoldersSchema,
+      },
+      async (args) => {
+        try {
+          const params = ListFoldersSchema.parse(args ?? {});
+          const result = await this.emailOperations.listFolders(params);
+          return this.createJsonResponse({
+            success: result.success,
+            folders: result.folders,
+          })
         } catch (error) {
           this.handleError(error);
         }

@@ -4,12 +4,21 @@ A Model Context Protocol (MCP) server for Gmail operations using IMAP/SMTP with 
 
 ## Features
 
+### Email Management
 - **listMessages**: List the last 10 messages (or more if specified)
 - **listUnread**: List unread messages (default: last 10)
 - **findMessage**: Search for messages containing specific words or phrases (supports folder search: `in:sent`, `in:trash`, etc.)
 - **sendMessage**: Send emails with HTML formatting and multiple CC/BCC recipients
 - **markAsRead**: Mark messages (by ID) as read
 - **deleteMessage**: Delete messages (move to Trash)
+
+### Folder & Label Management
+- **listFolders**: List all available folders in your mailbox
+- **listLabels**: List all available labels in your mailbox
+- **createFolder**: Create a new folder
+- **createLabel**: Create a new label
+- **moveMessage**: Move a message to a different folder
+- **labelMessage**: Apply labels to a message
 
 ## Simple Setup (No OAuth Required!)
 
@@ -339,6 +348,95 @@ Example:
   "messageIds": ["12345", "12346"]
 }
 ```
+
+### listFolders
+
+Lists all available folders in your Gmail mailbox (INBOX, Sent Mail, Trash, Drafts, etc.).
+
+- Parameters: None required
+
+Example:
+
+```json
+{}
+```
+
+### listLabels
+
+Lists all available labels in your Gmail mailbox.
+
+- Parameters: None required
+
+Example:
+
+```json
+{}
+```
+
+### createFolder
+
+Creates a new folder in your Gmail mailbox.
+
+- Parameters: `folderName` (required) - Name of the folder to create
+
+Example:
+
+```json
+{
+  "folderName": "Projects/2024"
+}
+```
+
+### createLabel
+
+Creates a new label in your Gmail mailbox.
+
+- Parameters: `labelName` (required) - Name of the label to create
+
+Example:
+
+```json
+{
+  "labelName": "Important/Work"
+}
+```
+
+### moveMessage
+
+Moves a message from one folder to another.
+
+- Parameters: 
+  - `messageId` (required) - UID of the message to move
+  - `folder` (required) - Destination folder name
+  - `sourceFolder` (optional, default: "INBOX") - Source folder name
+
+Example:
+
+```json
+{
+  "messageId": "12345",
+  "folder": "Projects/2024",
+  "sourceFolder": "INBOX"
+}
+```
+
+### labelMessage
+
+Applies one or more labels to a message.
+
+- Parameters: 
+  - `messageId` (required) - UID of the message to label
+  - `labels` (required array) - Array of label names to apply
+
+Example:
+
+```json
+{
+  "messageId": "12345",
+  "labels": ["Important", "Work", "Follow-up"]
+}
+```
+
 
 ## Gmail Search Syntax
 
